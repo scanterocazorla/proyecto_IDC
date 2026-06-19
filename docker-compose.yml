@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  # 1. broker mqtt mosquitto
+  mosquitto:
+    image: eclipse-mosquitto:latest
+    container_name: broker_mqtt
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf
+    restart: unless-stopped
+
+  # 2. influxdb
+  influxdb:
+    image: influxdb:1.8
+    container_name: base_datos
+    ports:
+      - "8086:8086"
+    environment:
+      - INFLUXDB_DB=sensores
+    restart: unless-stopped
+
+  # 3. telegraf
+  telegraf:
+    image: telegraf:latest
+    container_name: cartero_telegraf
+    volumes:
+      - ./telegraf.conf:/etc/telegraf/telegraf.conf:ro
+    depends_on:
+      - mosquitto
+      - influxdb
+    restart: unless-stopped
+
+  # 4. grafana
+  grafana:
+    image: grafana/grafana:latest
+    container_name: panel_grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - influxdb
+    restart: unless-stopped
+  
+  #5. nodered
+  nodered:
+    image: nodered/node-red:latest
+    container_name: nodered_container
+    ports:
+      - "1880:1880"
+    volumes:
+      - datos_nodered:/data
+      
+volumes:
+  datos_nodered:
